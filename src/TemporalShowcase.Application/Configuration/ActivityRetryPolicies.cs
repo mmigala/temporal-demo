@@ -17,7 +17,7 @@ public static class ActivityRetryPolicies
             InitialInterval = TimeSpan.FromSeconds(1),
             BackoffCoefficient = 2,
             MaximumInterval = TimeSpan.FromSeconds(5),
-            MaximumAttempts = 5,
+            MaximumAttempts = TemporalConstants.MaxCapacityReserveAttempts,
         },
     };
 

@@ -36,12 +36,25 @@ public static class DocumentEndpoints
 
     private static async Task<IResult> StartAsync(StartDocumentProcessingRequest request, ITemporalClient client)
     {
+        var errors = new Dictionary<string, string[]>();
+
         if (string.IsNullOrWhiteSpace(request.FileName))
         {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-            {
-                [nameof(request.FileName)] = ["File name is required."],
-            });
+            errors[nameof(request.FileName)] = ["File name is required."];
+        }
+
+        if (request.SimulateCapacityFailures >= TemporalConstants.MaxCapacityReserveAttempts)
+        {
+            errors[nameof(request.SimulateCapacityFailures)] =
+            [
+                $"Must be less than {TemporalConstants.MaxCapacityReserveAttempts} " +
+                "(the ReserveCapacity activity's retry policy), otherwise capacity can never be reserved.",
+            ];
+        }
+
+        if (errors.Count > 0)
+        {
+            return Results.ValidationProblem(errors);
         }
 
         var documentId = Guid.NewGuid().ToString("n");

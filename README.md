@@ -123,6 +123,11 @@ All scenarios below are run through the API's Swagger UI at **http://localhost:8
 { "fileName": "retry-example.pdf", "simulateCapacityFailures": 3 }
 ```
 
+`simulateCapacityFailures` must be less than the `ReserveCapacity` activity's retry policy
+(4 is the highest value that can still succeed - see `TemporalConstants.MaxCapacityReserveAttempts`).
+A higher value is rejected upfront with a `400` validation error, since capacity could never be
+reserved before retries are exhausted.
+
 ### Missing signal and reconciliation
 
 ```json

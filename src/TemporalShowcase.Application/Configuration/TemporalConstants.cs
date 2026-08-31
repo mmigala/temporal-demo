@@ -15,6 +15,13 @@ public static class TemporalConstants
     /// <summary>Caps reconciliation attempts so the demo always reaches a terminal state.</summary>
     public const int MaxReconciliationAttempts = 3;
 
+    /// <summary>
+    /// Maximum attempts for the ReserveCapacity activity's retry policy (see <see cref="ActivityRetryPolicies.ReserveCapacity"/>).
+    /// A caller requesting at least this many simulated failures would exhaust the retry policy
+    /// before ever succeeding, so this is also used to validate the API's request input.
+    /// </summary>
+    public const int MaxCapacityReserveAttempts = 5;
+
     /// <summary>Workflow IDs are derived from the document ID so starting the same document twice is a conflict, not a new run.</summary>
     public static string BuildWorkflowId(string documentId) => $"document-processing-{documentId}";
 }
