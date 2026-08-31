@@ -102,54 +102,45 @@ Wait for all containers to report healthy (`docker compose ps`), then the follow
 
 ## 6. Running each scenario
 
-The examples below use PowerShell's `Invoke-RestMethod`. A `curl` equivalent is included where the
-syntax differs meaningfully.
+All scenarios below are run through the API's Swagger UI at **http://localhost:8080/swagger**:
+
+1. Expand `POST /api/documents`, click **Try it out**, paste one of the request bodies below into
+   the **Request body** field, then click **Execute**.
+2. Copy the `workflowId` from the response.
+3. Expand `GET /api/documents/{workflowId}`, click **Try it out**, paste in the `workflowId`, and
+   click **Execute** to see the workflow's current state. Re-run this a few times to watch the
+   `status` field progress (e.g. `WaitingForCompletion` -> `Reconciling` -> `Completed`).
 
 ### Successful execution
 
-```powershell
-$response = Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/documents `
-    -ContentType 'application/json' -Body '{ "fileName": "example.pdf" }'
-$response
-Invoke-RestMethod -Uri "http://localhost:8080$($response.statusUrl)"
+```json
+{ "fileName": "example.pdf" }
 ```
 
 ### Activity retries (capacity service fails 3 times, then succeeds)
 
-```powershell
-$response = Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/documents `
-    -ContentType 'application/json' `
-    -Body '{ "fileName": "retry-example.pdf", "simulateCapacityFailures": 3 }'
-Invoke-RestMethod -Uri "http://localhost:8080$($response.statusUrl)"
+```json
+{ "fileName": "retry-example.pdf", "simulateCapacityFailures": 3 }
 ```
 
 ### Missing signal and reconciliation
 
-```powershell
-$response = Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/documents `
-    -ContentType 'application/json' `
-    -Body '{ "fileName": "reconciliation-example.pdf", "simulateLostCompletionSignal": true }'
-Invoke-RestMethod -Uri "http://localhost:8080$($response.statusUrl)"
+```json
+{ "fileName": "reconciliation-example.pdf", "simulateLostCompletionSignal": true }
 ```
 
-The workflow waits 10 seconds for the signal, then reconciles through HTTP - watch the `status`
-field in the response change from `WaitingForCompletion` to `Reconciling` to `Completed` if you
-poll the status URL a few times.
+The workflow waits 10 seconds for the signal, then reconciles through HTTP.
 
 ### Permanent processing failure (with compensation)
 
-```powershell
-$response = Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/documents `
-    -ContentType 'application/json' `
-    -Body '{ "fileName": "failed-example.pdf", "simulateProcessingFailure": true }'
-Invoke-RestMethod -Uri "http://localhost:8080$($response.statusUrl)"
+```json
+{ "fileName": "failed-example.pdf", "simulateProcessingFailure": true }
 ```
 
 ### Cancelling a workflow
 
-```powershell
-Invoke-RestMethod -Method Post -Uri "http://localhost:8080$($response.statusUrl)/cancel"
-```
+Expand `POST /api/documents/{workflowId}/cancel`, click **Try it out**, paste in the `workflowId`,
+and click **Execute**.
 
 ### Combined scenarios
 
@@ -157,11 +148,13 @@ The three simulation flags are independent and can be combined in a single reque
 retry capacity twice, then reconcile via HTTP (since the signal is withheld), and discover a
 permanent failure:
 
-```powershell
-$response = Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/documents `
-    -ContentType 'application/json' `
-    -Body '{ "fileName": "example.pdf", "simulateCapacityFailures": 2, "simulateProcessingFailure": true, "simulateLostCompletionSignal": true }'
-Invoke-RestMethod -Uri "http://localhost:8080$($response.statusUrl)"
+```json
+{
+  "fileName": "example.pdf",
+  "simulateCapacityFailures": 2,
+  "simulateProcessingFailure": true,
+  "simulateLostCompletionSignal": true
+}
 ```
 
 ### Scenario summary
@@ -174,9 +167,6 @@ Invoke-RestMethod -Uri "http://localhost:8080$($response.statusUrl)"
 | Permanent processing failure | `{ "fileName": "failed-example.pdf", "simulateProcessingFailure": true }` |
 | Cancel a workflow | `POST /api/documents/{workflowId}/cancel` |
 | Combined | any mix of `simulateCapacityFailures`, `simulateProcessingFailure`, `simulateLostCompletionSignal` |
-
-At any point you can query a workflow's current state with `GET /api/documents/{workflowId}`, or
-try all of the above interactively through Swagger at http://localhost:8080/swagger.
 
 ## 7. Inspecting the Temporal UI
 
@@ -199,23 +189,20 @@ Open http://localhost:8088 and:
 
 This shows that the worker owns no state itself - all of it lives in Temporal.
 
-```powershell
-# 1. Start a workflow.
-$response = Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/documents `
-    -ContentType 'application/json' -Body '{ "fileName": "crash-demo.pdf" }'
-
-# 2. Stop the worker mid-flight.
-docker compose stop worker
-
-# 3. Wait a few seconds, then confirm the workflow is not making progress.
-Invoke-RestMethod -Uri "http://localhost:8080$($response.statusUrl)"
-
-# 4. Start the worker again.
-docker compose start worker
-
-# 5. The workflow resumes from its durable history and completes normally.
-Invoke-RestMethod -Uri "http://localhost:8080$($response.statusUrl)"
-```
+1. In Swagger, use `POST /api/documents` with `{ "fileName": "crash-demo.pdf" }` and copy the
+   `workflowId` from the response.
+2. Stop the worker mid-flight:
+   ```powershell
+   docker compose stop worker
+   ```
+3. In Swagger, use `GET /api/documents/{workflowId}` to confirm the workflow is not making
+   progress.
+4. Start the worker again:
+   ```powershell
+   docker compose start worker
+   ```
+5. Query `GET /api/documents/{workflowId}` again - the workflow resumes from its durable history
+   and completes normally.
 
 You can also restart the API itself (`docker compose restart api`) at any point and re-query the
 same workflow - the API holds no workflow state; it only talks to Temporal.
