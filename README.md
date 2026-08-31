@@ -151,6 +151,33 @@ Invoke-RestMethod -Uri "http://localhost:8080$($response.statusUrl)"
 Invoke-RestMethod -Method Post -Uri "http://localhost:8080$($response.statusUrl)/cancel"
 ```
 
+### Combined scenarios
+
+The three simulation flags are independent and can be combined in a single request, e.g. to
+retry capacity twice, then reconcile via HTTP (since the signal is withheld), and discover a
+permanent failure:
+
+```powershell
+$response = Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/documents `
+    -ContentType 'application/json' `
+    -Body '{ "fileName": "example.pdf", "simulateCapacityFailures": 2, "simulateProcessingFailure": true, "simulateLostCompletionSignal": true }'
+Invoke-RestMethod -Uri "http://localhost:8080$($response.statusUrl)"
+```
+
+### Scenario summary
+
+| Scenario | Request body |
+|---|---|
+| Successful execution | `{ "fileName": "example.pdf" }` |
+| Activity retries | `{ "fileName": "retry-example.pdf", "simulateCapacityFailures": 3 }` |
+| Missing signal / reconciliation | `{ "fileName": "reconciliation-example.pdf", "simulateLostCompletionSignal": true }` |
+| Permanent processing failure | `{ "fileName": "failed-example.pdf", "simulateProcessingFailure": true }` |
+| Cancel a workflow | `POST /api/documents/{workflowId}/cancel` |
+| Combined | any mix of `simulateCapacityFailures`, `simulateProcessingFailure`, `simulateLostCompletionSignal` |
+
+At any point you can query a workflow's current state with `GET /api/documents/{workflowId}`, or
+try all of the above interactively through Swagger at http://localhost:8080/swagger.
+
 ## 7. Inspecting the Temporal UI
 
 Open http://localhost:8088 and:
