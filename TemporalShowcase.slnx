@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TemporalShowcase.Api/TemporalShowcase.Api.csproj" />
+    <Project Path="src/TemporalShowcase.Application/TemporalShowcase.Application.csproj" />
+    <Project Path="src/TemporalShowcase.CapacityService/TemporalShowcase.CapacityService.csproj" />
+    <Project Path="src/TemporalShowcase.Contracts/TemporalShowcase.Contracts.csproj" />
+    <Project Path="src/TemporalShowcase.DocumentProcessor/TemporalShowcase.DocumentProcessor.csproj" />
+    <Project Path="src/TemporalShowcase.Worker/TemporalShowcase.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TemporalShowcase.Application.Tests/TemporalShowcase.Application.Tests.csproj" />
+    <Project Path="tests/TemporalShowcase.IntegrationTests/TemporalShowcase.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

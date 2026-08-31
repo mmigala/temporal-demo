@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Temporalio" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="RabbitMQ.Client" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TemporalShowcase.Contracts\TemporalShowcase.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>
