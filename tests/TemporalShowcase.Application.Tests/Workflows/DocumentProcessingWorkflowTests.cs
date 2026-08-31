@@ -30,6 +30,7 @@ public class DocumentProcessingWorkflowTests
 
         DocumentProcessingResult? result = null;
         WorkflowFailedException? failure = null;
+        DocumentProcessingState? finalState = null;
 
         await worker.ExecuteAsync(async () =>
         {
@@ -50,9 +51,13 @@ public class DocumentProcessingWorkflowTests
             {
                 failure = ex;
             }
+
+            // Queries remain answerable after a workflow completes or fails, which is exactly
+            // what a caller polling GetState via the API would observe.
+            finalState = await handle.QueryAsync(wf => wf.GetState());
         });
 
-        return new WorkflowTestRun(result, failure);
+        return new WorkflowTestRun(result, failure, finalState);
     }
 
     private static async Task WaitForStatusAsync(
@@ -274,5 +279,23 @@ public class DocumentProcessingWorkflowTests
         Assert.That(activities.ReleaseCapacityCallCount, Is.EqualTo(1));
     }
 
-    private sealed record WorkflowTestRun(DocumentProcessingResult? Result, WorkflowFailedException? Failure);
+    [Test]
+    public async Task RunAsync_ReserveCapacityActivityExhaustsRetries_ReportsFailedState()
+    {
+        var activities = new FakeDocumentProcessingActivities
+        {
+            ReserveCapacityHandler = _ => throw new InvalidOperationException("Simulated permanent capacity outage."),
+        };
+        var input = CreateInput();
+
+        var run = await RunAsync(activities, input);
+
+        Assert.That(run.Result, Is.Null);
+        Assert.That(run.Failure, Is.Not.Null);
+        Assert.That(activities.ReleaseCapacityCallCount, Is.EqualTo(0));
+        Assert.That(run.FinalState!.Status, Is.EqualTo(DocumentProcessingStatus.Failed));
+        Assert.That(run.FinalState.LastError, Is.Not.Null);
+    }
+
+    private sealed record WorkflowTestRun(DocumentProcessingResult? Result, WorkflowFailedException? Failure, DocumentProcessingState? FinalState);
 }

@@ -66,12 +66,23 @@ public class DocumentProcessingWorkflow
         }
         catch (Exception ex) when (ex is not ApplicationFailureException)
         {
-            // Covers cancellation and unexpected activity failures. Capacity is only released
-            // if it was actually reserved, so a cancellation before reservation is a no-op.
+            // Covers cancellation and unexpected activity failures (e.g. an activity that
+            // exhausted its retry policy). Capacity is only released if it was actually
+            // reserved, so a cancellation before reservation is a no-op.
             if (_capacityReserved)
             {
                 await ReleaseCapacityAsync();
             }
+
+            // The workflow execution itself is about to fail/cancel at the Temporal level, but
+            // GetState is a separate query path - without this, a caller polling GetState would
+            // see the workflow frozen on its last in-progress step forever.
+            _status = ex is OperationCanceledException ? DocumentProcessingStatus.Cancelled : DocumentProcessingStatus.Failed;
+            _currentStep = _status.ToString();
+
+            // ActivityFailureException's own message is just "Activity task failed"; the useful
+            // detail (e.g. the HTTP status that caused it) lives on the inner exception.
+            _lastError ??= ex.InnerException?.Message ?? ex.Message;
 
             throw;
         }
