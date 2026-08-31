@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <PackageReference Include="Temporalio.Extensions.Hosting" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
   </ItemGroup>
 
   <ItemGroup>

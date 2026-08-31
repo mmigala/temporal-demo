@@ -96,6 +96,7 @@ Wait for all containers to report healthy (`docker compose ps`), then the follow
 | Service | URL |
 |---|---|
 | API | http://localhost:8080 |
+| API (Swagger UI) | http://localhost:8080/swagger |
 | Temporal Web UI | http://localhost:8088 |
 | RabbitMQ Management | http://localhost:15672 (guest / guest-local-dev-only) |
 

@@ -7,6 +7,11 @@ using TemporalShowcase.Contracts;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHealthChecks();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new() { Title = "Temporal Showcase API", Version = "v1" });
+});
 
 var temporalHost = builder.Configuration["Temporal:Host"] ?? "temporal:7233";
 var temporalNamespace = builder.Configuration["Temporal:Namespace"] ?? "default";
@@ -21,6 +26,9 @@ var temporalClient = await ConnectWithRetryAsync(
 builder.Services.AddSingleton<ITemporalClient>(temporalClient);
 
 var app = builder.Build();
+
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.MapHealthChecks("/health");
 
@@ -59,7 +67,13 @@ app.MapPost("/api/documents", async (StartDocumentProcessingRequest request, ITe
 
     var statusUrl = $"/api/documents/{workflowId}";
     return Results.Accepted(statusUrl, new StartDocumentProcessingResponse(workflowId, documentId, statusUrl));
-});
+})
+.WithName("StartDocumentProcessing")
+.WithSummary("Starts a new document-processing workflow.")
+.WithTags("Documents")
+.Produces<StartDocumentProcessingResponse>(StatusCodes.Status202Accepted)
+.ProducesValidationProblem()
+.Produces(StatusCodes.Status409Conflict);
 
 app.MapGet("/api/documents/{workflowId}", async (string workflowId, ITemporalClient client) =>
 {
@@ -73,7 +87,12 @@ app.MapGet("/api/documents/{workflowId}", async (string workflowId, ITemporalCli
     {
         return Results.NotFound();
     }
-});
+})
+.WithName("GetDocumentProcessingState")
+.WithSummary("Gets the current state of a document-processing workflow.")
+.WithTags("Documents")
+.Produces<DocumentProcessingState>(StatusCodes.Status200OK)
+.Produces(StatusCodes.Status404NotFound);
 
 app.MapPost("/api/documents/{workflowId}/cancel", async (string workflowId, ITemporalClient client) =>
 {
@@ -87,7 +106,12 @@ app.MapPost("/api/documents/{workflowId}/cancel", async (string workflowId, ITem
     {
         return Results.NotFound();
     }
-});
+})
+.WithName("CancelDocumentProcessing")
+.WithSummary("Requests cancellation of a document-processing workflow.")
+.WithTags("Documents")
+.Produces(StatusCodes.Status202Accepted)
+.Produces(StatusCodes.Status404NotFound);
 
 app.Run();
 

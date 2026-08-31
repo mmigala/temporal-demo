@@ -28,6 +28,10 @@ project.lock.json
 project.fragment.lock.json
 artifacts/
 
+# Visual Studio
+.vs/
+*.user
+
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
 
